@@ -8,7 +8,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ── Connection Config ──────────────────────────────────────────────────────────
 PROMETHEUS_URL = "https://localhost:9090"
-AUTH = ("admin", "CPAM@hpc2026")
+AUTH = ("admin", "password")
 
 # ── Full Metric Catalog ────────────────────────────────────────────────────────
 METRICS = {
