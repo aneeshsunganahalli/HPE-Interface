@@ -117,6 +117,33 @@ def timeframe_to_minutes(tf: str) -> int:
         return n * 1440
 
 
+def is_realtime_timeframe(tf: str) -> bool:
+    """Return True when the timeframe requests live node-level metrics."""
+    return tf.strip().lower() in {"real-time", "realtime"}
+
+
+def timeframe_to_prometheus_range(tf: str) -> str:
+    """
+    Convert CLI timeframe strings into Prometheus-compatible range values.
+
+    Examples:
+      - "6h" -> "6h"
+      - "4d" -> "4d"
+      - "real-time" -> "1h" (safe default window for trend queries)
+    """
+    normalized = tf.strip().lower()
+    if is_realtime_timeframe(normalized):
+        return "1h"
+
+    m = re.fullmatch(r"(\d+)([mhd])", normalized)
+    if not m:
+        return "1h"
+
+    value = int(m.group(1))
+    unit = m.group(2)
+    return f"{value}{unit}"
+
+
 # ──────────────────── Interaction ──────────────────────────────
 
 def press_enter_to_return():

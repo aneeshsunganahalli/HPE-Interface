@@ -4,19 +4,48 @@ Configuration constants for the OpenSearch CLI Monitor.
 Edit these values to match your OpenSearch cluster setup.
 """
 
-from rich.console import Console
 import os
+from rich.console import Console
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _env_int(name: str, default: int) -> int:
+    """Read an integer env var with a safe fallback."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    """Read a boolean env var with permissive true/false values."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
 # ─────────────────────────── CONFIG ────────────────────────────
-OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST")
-OPENSEARCH_PORT = os.getenv("OPENSEARCH_PORT")
-OPENSEARCH_USER = os.getenv("OPENSEARCH_USER")
-OPENSEARCH_PASS = os.getenv("OPENSEARCH_PASS")
-OPENSEARCH_SSL = os.getenv("OPENSEARCH_SSL")
+OPENSEARCH_HOST = os.getenv("OPENSEARCH_HOST", "localhost")
+OPENSEARCH_PORT = _env_int("OPENSEARCH_PORT", 9200)
+OPENSEARCH_USER = os.getenv("OPENSEARCH_USER", "admin")
+OPENSEARCH_PASS = os.getenv("OPENSEARCH_PASS", "admin")
+OPENSEARCH_SSL = _env_bool("OPENSEARCH_SSL", False)
+
+PROMETHEUS_HOST = os.getenv("PROMETHEUS_HOST", OPENSEARCH_HOST)
+PROMETHEUS_PORT = _env_int("PROMETHEUS_PORT", 9090)
+PROMETHEUS_SCHEME = os.getenv("PROMETHEUS_SCHEME", "http")
+PROMETHEUS_TIMEOUT_SECONDS = _env_int("PROMETHEUS_TIMEOUT_SECONDS", 6)
+
+PA_HOST = os.getenv("PA_HOST", OPENSEARCH_HOST)
+PA_PORT = _env_int("PA_PORT", 9600)
+PA_SCHEME = os.getenv("PA_SCHEME", "http")
+PA_TIMEOUT_SECONDS = _env_int("PA_TIMEOUT_SECONDS", 4)
 # ───────────────────────────────────────────────────────────────
 
 # ─────────────────────── THRESHOLDS ────────────────────────────

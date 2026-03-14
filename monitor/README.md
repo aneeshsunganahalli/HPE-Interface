@@ -25,24 +25,32 @@ python -m monitor --summary
 
 # Auto-refresh every 10 seconds
 python -m monitor --summary --watch 10
+
+# Historical trend window (Prometheus)
+python -m monitor --timeframe 6h
+
+# Force real-time node metrics
+python -m monitor --timeframe real-time
 ```
 
 ### CLI Flags
 
-| Flag        | Values                          | Default | Description                               |
-|-------------|---------------------------------|---------|-------------------------------------------|
-| `--service` | `opensearch`                    | —       | Skip service menu, go direct to OpenSearch |
-| `--summary` | flag                            | off     | Jump straight to Quick Summary            |
-| `--watch`   | integer (seconds)               | off     | Auto-refresh interval                     |
+| Flag          | Values                                   | Default | Description                                |
+|---------------|------------------------------------------|---------|--------------------------------------------|
+| `--timeframe` | `real-time`, `30m`, `1h`, `6h`, `4d`    | `1h`    | Routes metric source by time window        |
+| `--service`   | `opensearch`                             | —       | Skip service menu, go direct to OpenSearch |
+| `--summary`   | flag                                     | off     | Jump straight to Quick Summary             |
+| `--watch`     | integer (seconds)                        | off     | Auto-refresh interval                      |
 
 ## Views
 
 1. **Quick Summary** — 10-second health check: cluster status, resources (CPU / JVM Heap / RAM / Disk), index activity, shard status
-2. **Cluster Health** — Detailed cluster status with plain English explanations
-3. **Index Deep Dive** — All indices sorted by size, drill into shard layouts
-4. **Node Performance** — Per-node CPU, JVM heap, RAM, disk + indexing/search counters
-5. **Shard Overview** — All shards grouped by state, unassigned highlighted in red
-6. **Data Streams** — Data streams sorted by size with pipeline staleness detection via `maximum_timestamp`
+2. **Historical Trends** — 5-minute `max_over_time` buckets for CPU, JVM Heap, and Indexing Rate from Prometheus
+3. **Cluster Health** — Detailed cluster status with plain English explanations
+4. **Index Deep Dive** — All indices sorted by size, drill into shard layouts
+5. **Node Performance** — Per-node CPU, JVM heap, RAM, disk + indexing/search counters + bottleneck diagnostics
+6. **Shard Overview** — All shards grouped by state, unassigned highlighted in red
+7. **Data Streams** — Data streams sorted by size with pipeline staleness detection via `maximum_timestamp`
 
 ## Configuration
 
@@ -54,6 +62,12 @@ OPENSEARCH_PORT = 9200
 OPENSEARCH_USER = "admin"
 OPENSEARCH_PASS = "admin"
 OPENSEARCH_SSL  = False
+
+PROMETHEUS_HOST = "localhost"
+PROMETHEUS_PORT = 9090
+
+PA_HOST = "localhost"
+PA_PORT = 9600
 ```
 
 ### Alert Thresholds
@@ -126,6 +140,24 @@ Per-node breakdown of CPU, JVM heap, OS memory, disk (exact bytes via `fs.total`
 | `fs.total.total_in_bytes` / `available_in_bytes` | Per-node disk — watermark alarms |
 | `indices.indexing.index_total` | Per-node indexing ops |
 | `indices.search.query_total` | Per-node search queries |
+
+---
+
+### `GET /api/v1/query_range` (Prometheus)
+
+**Function:** `fetch_historical_trends(timeframe)` via `MetricsProvider`
+**Used in:** Historical Trends, long-window routing (`--timeframe > 1h`)
+
+Executes PromQL queries for 5-minute-bucket trend lines (`max_over_time`) and collapses multi-node series into a cluster-wide spike line.
+
+---
+
+### `GET /_plugins/_performanceanalyzer/metrics` (port `9600`)
+
+**Function:** `fetch_bottleneck_metrics(node_name)` via `MetricsProvider`
+**Used in:** Node Performance diagnostics (only when CPU or Disk crosses threshold)
+
+Fetches `Disk_Utilization` and `IO_TotWait` to provide plain-English bottleneck explanations.
 
 ---
 
@@ -209,26 +241,19 @@ monitor/
 └── Opensearch/
     └── views/
         ├── quick_summary.py      # View 1 — cluster-wide health check
-        ├── cluster_health.py     # View 2 — detailed health + shard counts
-        ├── index_deep_dive.py    # View 3 — index table + shard drill-down
-        ├── node_performance.py   # View 4 — per-node CPU / heap / disk / ops
-        ├── shard_overview.py     # View 5 — shards grouped by state
-        └── data_streams.py       # View 6 — data streams + pipeline staleness
+        ├── trends.py             # View 2 — historical Prometheus trends
+        ├── cluster_health.py     # View 3 — detailed health + shard counts
+        ├── index_deep_dive.py    # View 4 — index table + shard drill-down
+        ├── node_performance.py   # View 5 — per-node CPU / heap / disk / ops + diagnostics
+        ├── shard_overview.py     # View 6 — shards grouped by state
+        └── data_streams.py       # View 7 — data streams + pipeline staleness
 ```
 
 ---
 
-## Future: Prometheus Integration
+## Prometheus Metrics Used
 
-`timeframe_to_minutes()` is in `monitor/utils.py` and a `timeframe: str = "1h"` parameter is already wired through every view function signature. When Prometheus is added:
-
-1. Add `fetch_range_query(metric, timeframe)` to `client.py`
-2. Views call it using the passed `timeframe`
-3. Re-add the "Change Timeframe" menu item to `menus.py` (`_pick_timeframe()` pattern is documented in git history)
-
-Relevant Prometheus metric names:
+Historical Trends currently uses these Prometheus metric names:
 - `opensearch_jvm_mem_heap_used_bytes`
 - `opensearch_os_cpu_percent`
-- `opensearch_fs_total_available_size_in_bytes`
 - `opensearch_indices_indexing_index_total`
-- `opensearch_indices_search_query_total`

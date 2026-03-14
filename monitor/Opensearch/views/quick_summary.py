@@ -16,7 +16,7 @@ from monitor.config import console, CPU_WARN, CPU_CRIT, HEAP_WARN, HEAP_CRIT, DI
 from monitor.client import (
     fetch_cluster_health,
     fetch_cluster_stats,
-    fetch_node_stats,
+    fetch_node_stats_for_timeframe,
     fetch_disk_allocation,
     fetch_indices,
     fetch_shards,
@@ -61,7 +61,7 @@ def display_quick_summary(timeframe: str = "1h"):
     # One API call gives us cluster-wide CPU, JVM heap, OS RAM, and disk totals.
     # node_stats is fetched separately only to generate per-node targeted warnings.
     cluster_stats = fetch_cluster_stats()
-    node_stats = fetch_node_stats()
+    node_stats = fetch_node_stats_for_timeframe(timeframe=timeframe)
     disk_alloc = fetch_disk_allocation()
 
     # Cluster-wide totals — OpenSearch pre-aggregates these across all nodes

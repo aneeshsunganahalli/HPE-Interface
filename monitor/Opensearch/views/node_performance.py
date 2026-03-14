@@ -2,8 +2,12 @@
 View 4 — Node Performance
 
 Per-node table showing CPU, memory, and disk usage with
-green/yellow/red status indicators and a plain English summary.
+green/yellow/red status indicators, plus bottleneck diagnostics.
 """
+
+from __future__ import annotations
+
+from typing import Any
 
 from rich.panel import Panel
 from rich.table import Table
@@ -15,8 +19,54 @@ from monitor.config import (
     HEAP_WARN, HEAP_CRIT,
     DISK_WARN, DISK_CRIT,
 )
-from monitor.client import fetch_node_stats
-from monitor.utils import format_bytes, parse_size_string, status_symbol, status_color
+from monitor.client import fetch_bottleneck_metrics, fetch_node_stats_for_timeframe
+from monitor.utils import format_bytes, status_symbol, status_color
+
+
+PA_IO_WAIT_WARN = 20.0
+
+
+def _format_signal(value: float | None, unit: str | None = "%") -> str:
+    """Format optional diagnostic metrics for table display."""
+    if value is None:
+        return "[dim]n/a[/dim]"
+    if unit:
+        return f"{value:.1f}{unit}"
+    return f"{value:.1f}"
+
+
+def _plain_english_diagnostic(
+    cpu_pct: float,
+    disk_pct: float,
+    disk_util: float | None,
+    io_wait: float | None,
+) -> str:
+    """Translate raw bottleneck metrics into admin-friendly explanations."""
+    if io_wait is not None and io_wait >= PA_IO_WAIT_WARN and cpu_pct >= CPU_WARN:
+        return (
+            "CPU looks high, but the main issue is storage wait. "
+            "IO_TotWait is elevated, so worker threads are blocked on disk I/O."
+        )
+
+    if disk_util is not None and disk_util >= DISK_WARN and disk_pct >= DISK_WARN:
+        return (
+            "Disk is the bottleneck. High Disk_Utilization indicates indexing/merge "
+            "workloads are saturating storage bandwidth."
+        )
+
+    if cpu_pct >= CPU_WARN and disk_pct < DISK_WARN:
+        return (
+            "Node is compute-bound. Indexing/search workload is likely consuming most "
+            "CPU cycles."
+        )
+
+    if disk_pct >= DISK_WARN:
+        return (
+            "Node is storage-bound. Disk pressure is rising and can increase both index "
+            "and query latency."
+        )
+
+    return "Pressure is elevated, but the exact root cause is inconclusive from current telemetry."
 
 
 def display_node_performance(timeframe: str = "1h"):
@@ -25,14 +75,11 @@ def display_node_performance(timeframe: str = "1h"):
     console.rule("[bold cyan]OpenSearch — Node Performance[/bold cyan]")
     console.print()
 
-    node_stats = fetch_node_stats()
+    node_stats = fetch_node_stats_for_timeframe(timeframe=timeframe)
 
     if not node_stats or "nodes" not in node_stats:
         console.print("[red]Could not retrieve node stats.[/red]")
         return
-
-    # Build a disk lookup by node name
-    disk_by_node = {}
 
     # ── Build Table ───────────────────────────────────────────
     table = Table(
@@ -52,6 +99,7 @@ def display_node_performance(timeframe: str = "1h"):
 
     issues = []
     indexing_details = []
+    diagnostics: list[dict[str, Any]] = []
 
     for node_id, node in node_stats["nodes"].items():
         os_info = node.get("os", {})
@@ -111,6 +159,28 @@ def display_node_performance(timeframe: str = "1h"):
         elif disk_pct >= DISK_WARN:
             issues.append(f"[yellow]⚠[/yellow]  {node_name} — disk getting full ({disk_pct:.0f}%)")
 
+        if cpu_pct >= CPU_WARN or disk_pct >= DISK_WARN:
+            pa_metrics = fetch_bottleneck_metrics(node_name=node_name)
+            disk_util = pa_metrics.get("disk_utilization")
+            io_wait = pa_metrics.get("io_tot_wait")
+
+            diagnostics.append(
+                {
+                    "node": node_name,
+                    "severity": "critical" if (cpu_pct >= CPU_CRIT or disk_pct >= DISK_CRIT) else "warning",
+                    "cpu": cpu_pct,
+                    "disk": disk_pct,
+                    "disk_util": disk_util,
+                    "io_wait": io_wait,
+                    "explanation": _plain_english_diagnostic(
+                        cpu_pct=cpu_pct,
+                        disk_pct=disk_pct,
+                        disk_util=disk_util,
+                        io_wait=io_wait,
+                    ),
+                }
+            )
+
         indexing_details.append((node_name, index_total, query_total))
 
     console.print(table)
@@ -149,5 +219,56 @@ def display_node_performance(timeframe: str = "1h"):
             console.print(f"  {issue}")
     else:
         console.print("  [green]✓  All nodes healthy — no performance concerns detected.[/green]")
+
+    console.print()
+
+    # ── Diagnostic (high-level first, drill-down second) ─────────────────────
+    critical_count = sum(1 for item in diagnostics if item["severity"] == "critical")
+    warning_count = len(diagnostics) - critical_count
+
+    if diagnostics:
+        console.print(Panel(
+            f"  {len(diagnostics)} node(s) crossed CPU/Disk thresholds in this snapshot.\n"
+            f"  Critical: {critical_count}    Warning: {warning_count}\n"
+            "  Drill-down below explains likely root cause using Performance Analyzer metrics.",
+            title="[bold]Diagnostic[/bold]",
+            title_align="left",
+            border_style="cyan",
+            expand=True,
+        ))
+
+        diag_table = Table(
+            box=box.SIMPLE,
+            show_header=True,
+            header_style="bold cyan",
+            expand=True,
+        )
+        diag_table.add_column("Node", style="bold white", ratio=1)
+        diag_table.add_column("Pressure", width=10, justify="center")
+        diag_table.add_column("PA Signals", width=34)
+        diag_table.add_column("Plain English Diagnosis", ratio=3)
+
+        for item in diagnostics:
+            pressure = "[red]critical[/red]" if item["severity"] == "critical" else "[yellow]warning[/yellow]"
+            signals = (
+                f"Disk_Utilization={_format_signal(item['disk_util'])}  "
+                f"IO_TotWait={_format_signal(item['io_wait'], unit=None)}"
+            )
+            diag_table.add_row(
+                str(item["node"]),
+                pressure,
+                signals,
+                str(item["explanation"]),
+            )
+
+        console.print(diag_table)
+    else:
+        console.print(Panel(
+            "  [green]No CPU or disk bottlenecks detected. Performance Analyzer drill-down is not required.[/green]",
+            title="[bold]Diagnostic[/bold]",
+            title_align="left",
+            border_style="green",
+            expand=True,
+        ))
 
     console.print()

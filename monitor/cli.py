@@ -2,7 +2,7 @@
 CLI entry point for the OpenSearch Monitor.
 
 Uses click for flag parsing:
-  --timeframe  : 1h, 6h, 24h, 7d  (default: 1h)
+    --timeframe  : real-time, 1h, 6h, 24h, 7d  (default: 1h)
   --watch      : auto-refresh interval in seconds (default: off)
   --summary    : jump straight to Quick Summary
   --service    : opensearch (default), kafka/logstash stubbed as coming soon
@@ -17,7 +17,7 @@ import click
 
 from monitor.config import console
 from monitor.menus import main_service_menu, opensearch_menu
-from monitor.views.quick_summary import display_quick_summary
+from monitor.Opensearch.views.quick_summary import display_quick_summary
 from monitor.utils import press_enter_to_return
 
 
@@ -26,7 +26,7 @@ from monitor.utils import press_enter_to_return
     "--timeframe",
     default="1h",
     show_default=True,
-    help="Time window for views that support filtering (e.g. 30m, 6h, 2d). Default: 1h.",
+    help="Time window for metric routing (real-time, 30m, 6h, 2d). Default: 1h.",
 )
 @click.option(
     "--watch",
@@ -49,12 +49,12 @@ from monitor.utils import press_enter_to_return
 def cli(timeframe, watch, summary, service):
     """OpenSearch Cluster Monitor — a terminal-based health checker."""
 
-    # Validate --timeframe format (number + m/h/d)
-    if not re.fullmatch(r"\d+[mhd]", timeframe, re.IGNORECASE):
+    # Validate --timeframe format (real-time or number + m/h/d)
+    if not re.fullmatch(r"(real-time|\d+[mhd])", timeframe, re.IGNORECASE):
         raise click.BadParameter(
             f"'{timeframe}' is not a valid timeframe. "
-            "Use a number followed by m (minutes), h (hours), or d (days). "
-            "Examples: 30m, 6h, 24h, 7d",
+            "Use 'real-time' or a number followed by m (minutes), h (hours), or d (days). "
+            "Examples: real-time, 30m, 6h, 24h, 7d",
             param_hint="'--timeframe'",
         )
     timeframe = timeframe.lower()
@@ -67,9 +67,9 @@ def cli(timeframe, watch, summary, service):
     # --summary flag: jump straight to Quick Summary
     if summary:
         if watch:
-            _watch_loop(display_quick_summary, watch)
+            _watch_loop(display_quick_summary, watch, timeframe=timeframe)
         else:
-            display_quick_summary()
+            display_quick_summary(timeframe=timeframe)
             press_enter_to_return()
         return
 
@@ -103,7 +103,7 @@ def cli(timeframe, watch, summary, service):
             return
 
         _, view_fn = OPENSEARCH_VIEWS[choice]
-        _watch_loop(view_fn, watch)
+        _watch_loop(view_fn, watch, timeframe=timeframe)
         return
 
     # Default routing:
@@ -115,7 +115,7 @@ def cli(timeframe, watch, summary, service):
         main_service_menu(timeframe=timeframe)
 
 
-def _watch_loop(view_fn, interval: int):
+def _watch_loop(view_fn, interval: int, timeframe: str):
     """
     Watch mode: clear → render view → show timestamp → sleep → repeat.
     Catches KeyboardInterrupt for clean exit.
@@ -123,7 +123,7 @@ def _watch_loop(view_fn, interval: int):
     try:
         while True:
             console.clear()
-            view_fn()
+            view_fn(timeframe=timeframe)
             now = datetime.datetime.now().strftime("%H:%M:%S")
             console.print(
                 f"\n[dim]Last updated: {now} — refreshing in {interval}s  "

@@ -12,6 +12,7 @@ from simple_term_menu import TerminalMenu
 
 from monitor.config import console
 from monitor.Opensearch.views.quick_summary import display_quick_summary
+from monitor.Opensearch.views.trends import display_trends
 from monitor.Opensearch.views.cluster_health import display_cluster_health
 from monitor.Opensearch.views.index_deep_dive import display_index_deep_dive
 from monitor.Opensearch.views.node_performance import display_node_performance
@@ -74,6 +75,7 @@ def main_service_menu(timeframe: str = "1h"):
 
 OPENSEARCH_VIEWS = [
     ("Quick Summary",  display_quick_summary),
+    ("Historical Trends", display_trends),
     ("Cluster Health", display_cluster_health),
     ("Index Deep Dive", display_index_deep_dive),
     ("Node Performance", display_node_performance),
