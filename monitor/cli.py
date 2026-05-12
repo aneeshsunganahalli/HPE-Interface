@@ -49,7 +49,7 @@ from monitor.utils import press_enter_to_return
 )
 @click.option(
     "--service",
-    type=click.Choice(["opensearch", "kafka", "logstash"], case_sensitive=False),
+    type=click.Choice(["opensearch", "kafka", "prometheus", "logstash"], case_sensitive=False),
     default=None,
     help="Service to monitor. Omit to see the service selector menu.",
 )
@@ -142,6 +142,10 @@ def cli(timeframe, source, watch, summary, service, query, level, spike_ts):
     if service == "kafka":
         from monitor.menus import kafka_menu
         kafka_menu()
+        return
+    if service == "prometheus":
+        from monitor.menus import prometheus_menu
+        prometheus_menu()
         return
     # Default routing:
     #   --service opensearch   → go directly to the OpenSearch menu
