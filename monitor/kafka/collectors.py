@@ -79,7 +79,7 @@ PROM_VERIFY = False
 KAFKA_BOOTSTRAP = "localhost:9092"
 KAFKA_TOPIC     = "test-topic"
 KAFKA_GROUP     = "logstash-consumer-group"
-KAFKA_LOG_DIR   = "/opt/kafka/kafka/logs"
+KAFKA_LOG_DIR   = "/var/lib/kafka-logs"
 KAFKA_BASE_DIR  = "/opt/kafka/kafka"
 
 # ══════════════════════════════════════════════════════════════
@@ -284,18 +284,15 @@ def _du_bytes(path: str) -> int:
 def collect_k6() -> dict:
     """
     Total disk footprint of entire Kafka installation vs root partition size.
-    Score  : (kafka_total_bytes / root_partition_total) * 100
-    Source : subprocess du -sb on /opt/kafka/kafka + psutil.disk_usage("/")
-    States : SAFE < 25%  |  WARNING 25-40%  |  CRITICAL >= 40%
-
-    Breakdown (dynamic):
-      logs/ → message data, index files, KRaft metadata, app logs
-    Breakdown (static):
-      libs/, bin/, config/, licenses, site-docs
+    Includes BOTH the base install directory and the external data log directory.
     """
     try:
+        # ── Measure both directories ──────────────────────────
+        base_dir_bytes = _du_bytes(KAFKA_BASE_DIR)
+        data_dir_bytes = _du_bytes(KAFKA_LOG_DIR)
+
         # ── Total Kafka installation footprint ────────────────
-        kafka_total_bytes = _du_bytes(KAFKA_BASE_DIR)
+        kafka_total_bytes = base_dir_bytes + data_dir_bytes
 
         # ── Root partition stats ──────────────────────────────
         root            = psutil.disk_usage("/")
@@ -310,18 +307,18 @@ def collect_k6() -> dict:
                      "WARNING"  if kafka_pct < 40 else
                      "CRITICAL")
 
-        # ── Top-level component breakdown ─────────────────────
-        logs_bytes   = _du_bytes(f"{KAFKA_BASE_DIR}/logs")
+        # ── Top-level component breakdown (from BASE_DIR) ─────
+        applog_bytes = _du_bytes(f"{KAFKA_BASE_DIR}/logs")
         libs_bytes   = _du_bytes(f"{KAFKA_BASE_DIR}/libs")
         bin_bytes    = _du_bytes(f"{KAFKA_BASE_DIR}/bin")
         config_bytes = _du_bytes(f"{KAFKA_BASE_DIR}/config")
-        other_bytes  = max(kafka_total_bytes - logs_bytes - libs_bytes
-                           - bin_bytes - config_bytes, 0)
+        
+        # 'Other' is whatever is left in base_dir after subtracting the known folders
+        other_bytes  = max(base_dir_bytes - applog_bytes - libs_bytes - bin_bytes - config_bytes, 0)
 
-        # ── Inside logs/ sub-breakdown ────────────────────────
+        # ── Inside KAFKA_LOG_DIR (Data) sub-breakdown ─────────
         msg_bytes    = 0
         kraft_bytes  = 0
-        applog_bytes = 0
 
         try:
             for item in pathlib.Path(KAFKA_LOG_DIR).iterdir():
@@ -329,12 +326,15 @@ def collect_k6() -> dict:
                     kraft_bytes += _du_bytes(str(item))
                 elif item.is_dir():
                     msg_bytes += _du_bytes(str(item))
-                elif item.is_file() and item.suffix in (".log", ".out"):
-                    applog_bytes += item.stat().st_size
         except Exception:
             pass
 
-        index_bytes = max(logs_bytes - msg_bytes - kraft_bytes - applog_bytes, 0)
+        # Indexes and other metadata are whatever is left in the data_dir
+        index_bytes = max(data_dir_bytes - msg_bytes - kraft_bytes, 0)
+
+        # ── Combine for UI Presentation ───────────────────────
+        # The UI shows a unified "logs/" folder. We combine app logs and data logs here.
+        logs_bytes = applog_bytes + data_dir_bytes
 
         def gb(b): return round(b / (1024**3), 3)
 
@@ -360,13 +360,11 @@ def collect_k6() -> dict:
         }
     except Exception as e:
         return {
-            "value":    0,
+            "value":     0,
             "kafka_pct": None,
-            "state":    "ERROR",
-            "error":    str(e),
+            "state":     "ERROR",
+            "error":     str(e),
         }
-
-
 
 
 # ── K7 : Messages Produced Rate ──────────────────────────────
