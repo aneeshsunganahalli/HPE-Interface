@@ -11,9 +11,9 @@ All metrics are scoped to the OpenSearch process itself — not the host OS:
     heap_max_bytes    jvm.mem.heap_max_in_bytes
     jvm_thread_count  jvm.threads.count
     jvm_thread_peak_count jvm.threads.peak_count
-  disk_store_bytes  indices.store.size_in_bytes    (data owned by OpenSearch on this node)
-  disk_total_bytes  fs.total.total_in_bytes        (capacity of the data filesystem)
-  disk_pct          disk_store_bytes / disk_total_bytes * 100
+    disk_store_bytes  indices.store.size_in_bytes    (data owned by OpenSearch on this node)
+    disk_total_bytes  fs.total.total_in_bytes        (capacity of the data filesystem)
+    disk_pct          filesystem used percent
   gc_young_ms       jvm.gc.collectors.young.collection_time_in_millis  (cumulative; caller diffs)
   gc_old_ms         jvm.gc.collectors.old.collection_time_in_millis    (cumulative; caller diffs)
   tp_write_queue    thread_pool.write.queue
@@ -78,13 +78,12 @@ def collect(client) -> dict[str, dict[str, Any]]:
         jvm_thread_count = jvm_threads.get("count", 0)
         jvm_thread_peak_count = jvm_threads.get("peak_count", 0)
 
-        # ── Disk: indices store vs filesystem capacity ─────────────────────
-        # indices.store.size_in_bytes = bytes OpenSearch itself wrote on this node
-        # fs.total.total_in_bytes     = total capacity of the data filesystem
+        # ── Disk: filesystem usage ──────────────────────────────────────────
         store_bytes = node.get("indices", {}).get("store", {}).get("size_in_bytes", 0)
         fs_total    = node.get("fs", {}).get("total", {})
         disk_total  = fs_total.get("total_in_bytes", 0)
-        disk_pct    = (store_bytes / disk_total * 100.0) if disk_total > 0 else 0.0
+        disk_free   = fs_total.get("free_in_bytes", 0)
+        disk_pct    = ((disk_total - disk_free) / disk_total * 100.0) if disk_total > 0 else 0.0
 
         # ── GC pause time (cumulative ms — caller computes rate) ───────────
         gc_collectors = node.get("jvm", {}).get("gc", {}).get("collectors", {})
@@ -113,7 +112,7 @@ def collect(client) -> dict[str, dict[str, Any]]:
             "jvm_thread_peak_count": jvm_thread_peak_count,
             "disk_store_bytes": store_bytes,
             "disk_total_bytes": disk_total,
-            "disk_pct":        round(disk_pct, 2),
+            "disk_pct":        round(disk_pct, 4),
             "gc_young_ms":     gc_young_ms,  
             "gc_old_ms":       gc_old_ms,
             "thread_pool":     thread_pool,

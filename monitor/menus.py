@@ -48,9 +48,6 @@ SERVICE_OPTIONS = [
     "OpenSearch",
     "Kafka",
     "Prometheus",
-    "Logstash       (coming soon)",
-    "---",
-    "All Services   (coming soon)",
     "---",
     "Exit",
 ]
@@ -76,7 +73,7 @@ def main_service_menu(timeframe: str = "1h", query: str = "*", level: str = None
         )
         choice = menu.show()
 
-        if choice is None or choice == 7:  # Escape or Exit
+        if choice is None or choice == len(SERVICE_OPTIONS) - 1:  # Escape or Exit
             console.print("[bold green]Goodbye![/bold green]")
             sys.exit(0)
         elif choice == 0:
@@ -85,9 +82,8 @@ def main_service_menu(timeframe: str = "1h", query: str = "*", level: str = None
             kafka_menu()
         elif choice == 2:
             prometheus_menu()
-        elif choice in (3, 4, 5):
-            console.print("\n[yellow]⚠  This service is coming soon.[/yellow]")
-            press_enter_to_return()
+        elif choice == 3:
+            continue
 
 
 # ──────────────── OpenSearch Submenu ───────────────────────────

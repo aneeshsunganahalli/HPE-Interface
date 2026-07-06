@@ -48,7 +48,7 @@ def _fd_metrics(pid: int) -> dict[str, Any]:
     """Count open file descriptors via /proc/<pid>/fd/."""
     fd_dir = f"/proc/{pid}/fd"
     try:
-        fd_count = len(os.listdir(fd_dir))
+        fd_entries = os.listdir(fd_dir)
     except PermissionError:
         # Try psutil as secondary fallback (also reads /proc/<pid>/fd internally)
         try:
@@ -62,6 +62,9 @@ def _fd_metrics(pid: int) -> dict[str, Any]:
     except FileNotFoundError:
         return {}
 
+    fd_count = len(fd_entries)
+    fd_types = _classify_fd_entries(pid, fd_entries)
+
     soft_limit = _fd_limit_for_pid(pid)
     fd_pct = (fd_count / soft_limit * 100.0) if soft_limit > 0 else 0.0
 
@@ -69,7 +72,44 @@ def _fd_metrics(pid: int) -> dict[str, Any]:
         "fd_count": fd_count,
         "fd_limit": soft_limit,
         "fd_pct":   round(fd_pct, 2),
+        "fd_types": fd_types,
     }
+
+
+def _classify_fd_entries(pid: int, fd_entries: list[str]) -> dict[str, int]:
+    """Group file descriptors by target type using /proc/<pid>/fd symlinks."""
+    counts = {
+        "files": 0,
+        "sockets": 0,
+        "pipes": 0,
+        "anon_inode": 0,
+        "memfd": 0,
+        "other": 0,
+    }
+
+    fd_dir = f"/proc/{pid}/fd"
+    for entry in fd_entries:
+        fd_path = os.path.join(fd_dir, entry)
+        try:
+            target = os.readlink(fd_path)
+        except OSError:
+            counts["other"] += 1
+            continue
+
+        if target.startswith("socket:"):
+            counts["sockets"] += 1
+        elif target.startswith("pipe:"):
+            counts["pipes"] += 1
+        elif target.startswith("anon_inode:"):
+            counts["anon_inode"] += 1
+        elif target.startswith("memfd:"):
+            counts["memfd"] += 1
+        elif target.startswith("/"):
+            counts["files"] += 1
+        else:
+            counts["other"] += 1
+
+    return counts
 
 
 def _fd_limit_for_pid(pid: int) -> int:

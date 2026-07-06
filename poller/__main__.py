@@ -23,7 +23,7 @@ def _parse_args() -> argparse.Namespace:
             "Metrics are scoped to the OpenSearch process (not system-wide):\n"
             "  CPU%        — process.cpu.percent\n"
             "  Heap%       — JVM heap used / max\n"
-            "  Disk%       — OpenSearch store bytes / filesystem capacity\n"
+            "  Disk%       — filesystem used percent\n"
             "  Thread pool — write/search queue depth and rejection rates\n"
             "  FD count    — open file descriptors vs ulimit\n"
             "  I/O rate    — process-level read/write bytes per second\n"
