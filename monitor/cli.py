@@ -5,7 +5,7 @@ Uses click for flag parsing:
     --timeframe  : real-time, 1h, 6h, 24h, 7d  (default: 1h)
   --watch      : auto-refresh interval in seconds (default: off)
   --summary    : jump straight to Quick Summary
-  --service    : opensearch (default), kafka/logstash stubbed as coming soon
+    --service    : opensearch (default), kafka stubbed as coming soon
 """
 
 import sys
@@ -49,7 +49,7 @@ from monitor.utils import press_enter_to_return
 )
 @click.option(
     "--service",
-    type=click.Choice(["opensearch", "kafka", "prometheus", "logstash"], case_sensitive=False),
+    type=click.Choice(["opensearch", "kafka", "prometheus"], case_sensitive=False),
     default=None,
     help="Service to monitor. Omit to see the service selector menu.",
 )
@@ -84,11 +84,6 @@ def cli(timeframe, source, watch, summary, service, query, level, spike_ts):
 
     if source:
         get_metrics_provider().set_history_source_preference(source)
-
-    # Handle coming-soon services
-    if service == "logstash":
-        console.print("\n[yellow]⚠ Logstash monitoring is coming soon.[/yellow]")
-        sys.exit(0)
 
     # --summary flag: jump straight to Quick Summary
     if summary:

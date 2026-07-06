@@ -56,8 +56,8 @@ These are per-node metrics under `nodes.<node_name>`.
 - Source:
   - `indices.store.size_in_bytes` (OpenSearch-owned data size)
   - `fs.total.total_in_bytes` (filesystem capacity)
-- Formula: `disk_pct = disk_store_bytes / disk_total_bytes * 100`
-- Meaning: How much of node storage capacity is consumed by OpenSearch index data
+- Formula: `disk_pct = (disk_total_bytes - fs.free_in_bytes) / disk_total_bytes * 100`
+- Meaning: How much of the node filesystem is in use
 - Why we poll it: Prevents disk exhaustion and shard allocation issues
 
 ### `index_total`

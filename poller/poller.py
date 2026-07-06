@@ -219,6 +219,8 @@ def run(
                         host_out["fd_count"] = host_snapshot["fd_count"]
                         host_out["fd_limit"] = host_snapshot["fd_limit"]
                         host_out["fd_pct"]   = host_snapshot["fd_pct"]
+                    if "fd_types" in host_snapshot:
+                        host_out["fd_types"] = host_snapshot["fd_types"]
                     if "io_read_bytes" in host_snapshot:
                         host_out["io_read_bytes"]  = host_snapshot["io_read_bytes"]
                         host_out["io_write_bytes"] = host_snapshot["io_write_bytes"]
