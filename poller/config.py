@@ -49,3 +49,15 @@ OS_PROCESS_KEYWORD = os.getenv(
 
 # Leave empty to auto-detect from the device that "/" is mounted on.
 OS_DATA_DEVICE = os.getenv("OS_DATA_DEVICE", "")
+
+# ─── Prometheus Remote Write ──────────────────────────────────────────────────
+# Requires: prometheus --web.enable-remote-write-receiver
+PROMETHEUS_REMOTE_WRITE_URL = os.getenv(
+    "PROMETHEUS_REMOTE_WRITE_URL", "http://localhost:9090/api/v1/write"
+)
+PROMETHEUS_REMOTE_WRITE_JOB = os.getenv(
+    "PROMETHEUS_REMOTE_WRITE_JOB", "hpe_opensearch_poller"
+)
+PROMETHEUS_REMOTE_WRITE_ENABLED = _env_bool(
+    "PROMETHEUS_REMOTE_WRITE_ENABLED", True
+)

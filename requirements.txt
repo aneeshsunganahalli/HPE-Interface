@@ -6,3 +6,4 @@ simple-term-menu>=1.6.0
 prompt-toolkit>=3.0.0
 python-dotenv==1.2.2
 psutil>=5.9.0
+prometheus-remote-writer>=0.2.0
