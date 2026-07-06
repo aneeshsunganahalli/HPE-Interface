@@ -2,11 +2,11 @@
 Poller orchestrator.
 
 Runs a continuous loop that:
-  1. Calls the OpenSearch API collector (CPU, heap, disk, GC, thread pool)
-  2. Calls the system collector (FD count, process-level I/O)
-  3. Computes rate metrics from cumulative counters (GC pause rate, I/O rate)
-  4. Assembles a single timestamped record
-  5. Appends it to the JSONL store
+    1. Calls the OpenSearch API collector (CPU, heap, JVM threads, disk, GC, thread pool)
+    2. Calls the system collector (FD count, process-level I/O)
+    3. Computes rate metrics from cumulative counters (GC pause rate, I/O rate)
+    4. Assembles a single timestamped record
+    5. Appends it to the JSONL store
 
 GC Pause Rate
 -------------
@@ -17,6 +17,11 @@ Thread Pool Rejected Rate
 -------------------------
 Stored as `tp_<pool>_rejected_per_s` — new rejections in this interval / elapsed s.
 If the cumulative counter resets (node restart), the delta is discarded (set to 0).
+
+JVM Thread Counts
+------------------
+Stored as `jvm_thread_count` and `jvm_thread_peak_count` from OpenSearch `/_nodes/stats`.
+These are direct snapshot gauges, not derived rates.
 
 I/O Rate
 --------
@@ -45,6 +50,7 @@ from poller.config import (
 )
 from poller.collectors import opensearch_api, system as sys_collector
 from poller.storage.writer import append_record
+from poller.storage.prometheus_writer import write_record
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -180,6 +186,9 @@ def run(
                     "heap_pct":             snap["heap_pct"],
                     "heap_used_bytes":      snap["heap_used_bytes"],
                     "heap_max_bytes":       snap["heap_max_bytes"],
+                    # JVM thread counts (snapshot gauges)
+                    "jvm_thread_count":     snap.get("jvm_thread_count", 0),
+                    "jvm_thread_peak_count": snap.get("jvm_thread_peak_count", 0),
                     # Disk: bytes OpenSearch owns vs filesystem capacity
                     "disk_store_bytes":     snap["disk_store_bytes"],
                     "disk_total_bytes":     snap["disk_total_bytes"],
@@ -224,7 +233,8 @@ def run(
             }
 
             # ── Persist ───────────────────────────────────────────────────
-            written_path = append_record(output_dir, record)
+            written_path = append_record(output_dir, record)   # JSONL — unchanged
+            write_record(record)                                # Prometheus — non-fatal
 
             # ── Update state for next cycle ────────────────────────────────
             prev_api_snapshots = api_snapshots

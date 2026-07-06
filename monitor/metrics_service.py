@@ -10,6 +10,8 @@ from monitor.config import (
     PROMETHEUS_PORT,
     PROMETHEUS_SCHEME,
     PROMETHEUS_TIMEOUT_SECONDS,
+    PROMETHEUS_USER,
+    PROMETHEUS_PASS,
     PA_HOST,
     PA_PORT,
     PA_SCHEME,
@@ -47,7 +49,11 @@ class MetricsProvider:
     """Route metric requests between OpenSearch, Prometheus, and Performance Analyzer."""
 
     def __init__(self) -> None:
-        self._http = urllib3.PoolManager()
+        pool_kwargs: dict[str, Any] = {"cert_reqs": "CERT_NONE"}
+        if PROMETHEUS_SCHEME == "https":
+            pool_kwargs["assert_hostname"] = False
+
+        self._http = urllib3.PoolManager(**pool_kwargs)
         self._prometheus_base = f"{PROMETHEUS_SCHEME}://{PROMETHEUS_HOST}:{PROMETHEUS_PORT}"
         self._pa_base = f"{PA_SCHEME}://{PA_HOST}:{PA_PORT}"
         self._poller_history = PollerHistoryStore(POLLER_DATA_DIR)
@@ -75,6 +81,18 @@ class MetricsProvider:
         if historical or timeframe_to_minutes(timeframe) > 60:
             return "prometheus"
         return "opensearch"
+
+    @staticmethod
+    def _series_coverage_ratio(series: 'TrendSeries') -> float:
+        """Return the fraction of datapoints that are non-zero (0.0–1.0).
+
+        Used by the auto source selector to measure how much of the
+        requested window actually contains real data vs zero-filled padding.
+        """
+        if not series.values:
+            return 0.0
+        non_zero = sum(1 for v in series.values if v != 0.0)
+        return non_zero / len(series.values)
 
     def fetch_node_stats(self, timeframe: str = "1h") -> dict[str, Any]:
         """
@@ -177,20 +195,21 @@ class MetricsProvider:
         prometheus_used = False
 
         for key in ("cpu", "heap", "indexing_rate"):
-            candidate = poller_series[key]
-            if candidate.values:
-                merged[key] = candidate
+            poller_cov = self._series_coverage_ratio(poller_series[key])
+
+            # Auto mode is poller-first. If poller has no actual values, fall back to Prometheus.
+            if poller_cov > 0:
+                merged[key] = poller_series[key]
                 poller_used = True
             else:
                 merged[key] = prometheus_series[key]
-                if prometheus_series[key].values:
-                    prometheus_used = True
+                prometheus_used = True
 
         if poller_used and prometheus_used:
             source = "mixed"
         elif poller_used:
             source = "poller"
-        elif any(series.values for series in merged.values()):
+        elif prometheus_used:
             source = "prometheus"
         else:
             source = "none"
@@ -384,9 +403,18 @@ class MetricsProvider:
         url = f"{base_url}{path}?{query}" if query else f"{base_url}{path}"
 
         try:
+            headers = {}
+            if PROMETHEUS_USER and PROMETHEUS_PASS:
+                import base64
+                token = base64.b64encode(
+                    f"{PROMETHEUS_USER}:{PROMETHEUS_PASS}".encode()
+                ).decode()
+                headers["Authorization"] = f"Basic {token}"
+
             response = self._http.request(
                 "GET",
                 url,
+                headers=headers,
                 timeout=urllib3.Timeout(connect=timeout_seconds, read=timeout_seconds),
             )
         except Exception as exc:

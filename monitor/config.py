@@ -53,6 +53,9 @@ PROMETHEUS_HOST = os.getenv("PROMETHEUS_HOST", OPENSEARCH_HOST)
 PROMETHEUS_PORT = _env_int("PROMETHEUS_PORT", 9090)
 PROMETHEUS_SCHEME = os.getenv("PROMETHEUS_SCHEME", "http")
 PROMETHEUS_TIMEOUT_SECONDS = _env_int("PROMETHEUS_TIMEOUT_SECONDS", 6)
+PROMETHEUS_USER = os.getenv("PROMETHEUS_USER", "")
+PROMETHEUS_PASS = os.getenv("PROMETHEUS_PASS", "")
+PROMETHEUS_DATA_DIR = os.path.expanduser(os.getenv("PROMETHEUS_DATA_DIR", "/var/lib/prometheus"))
 
 PA_HOST = os.getenv("PA_HOST", OPENSEARCH_HOST)
 PA_PORT = _env_int("PA_PORT", 9600)
@@ -109,22 +112,22 @@ KEYWORD_TAGS = {
 }
 
 # Diagnostic labels for root cause analysis
-ROOT_CAUSE_PATTERNS = [
-    ("OutOfMemoryError", "🔴 JVM OOM — heap exhausted"),
-    ("GC overhead limit", "🟠 GC overhead — excessive garbage collection"),
-    ("disk usage exceeded", "🔴 Disk full / watermark breached"),
-    ("circuit_breaking_exception", "🟠 Circuit breaker tripped — memory pressure"),
-    ("flood stage", "🔴 Disk flood-stage — index set read-only"),
-    ("high disk watermark", "🟡 High disk watermark crossed"),
-    ("rejected execution", "🟠 Thread pool rejection — queue full"),
-    ("bulk rejected", "🟠 Bulk indexing rejected — backpressure"),
-    ("timeout", "🟡 Operation timeout"),
-    ("failed to obtain", "🟡 Lock/resource contention"),
-    ("connection refused", "🟡 Downstream connection refused"),
-    ("shard failed", "🔴 Shard failure"),
-    ("unassigned", "🟡 Unassigned shards detected"),
-    ("slowlog", "🟡 Slow query/index detected"),
-]
+# ROOT_CAUSE_PATTERNS = [
+#     ("OutOfMemoryError", "🔴 JVM OOM — heap exhausted"),
+#     ("GC overhead limit", "🟠 GC overhead — excessive garbage collection"),
+#     ("disk usage exceeded", "🔴 Disk full / watermark breached"),
+#     ("circuit_breaking_exception", "🟠 Circuit breaker tripped — memory pressure"),
+#     ("flood stage", "🔴 Disk flood-stage — index set read-only"),
+#     ("high disk watermark", "🟡 High disk watermark crossed"),
+#     ("rejected execution", "🟠 Thread pool rejection — queue full"),
+#     ("bulk rejected", "🟠 Bulk indexing rejected — backpressure"),
+#     ("timeout", "🟡 Operation timeout"),
+#     ("failed to obtain", "🟡 Lock/resource contention"),
+#     ("connection refused", "🟡 Downstream connection refused"),
+#     ("shard failed", "🔴 Shard failure"),
+#     ("unassigned", "🟡 Unassigned shards detected"),
+#     ("slowlog", "🟡 Slow query/index detected"),
+# ]
 # ───────────────────────────────────────────────────────────────
 
 # Shared console instance

@@ -49,7 +49,7 @@ from monitor.utils import press_enter_to_return
 )
 @click.option(
     "--service",
-    type=click.Choice(["opensearch", "kafka", "logstash"], case_sensitive=False),
+    type=click.Choice(["opensearch", "kafka", "prometheus", "logstash"], case_sensitive=False),
     default=None,
     help="Service to monitor. Omit to see the service selector menu.",
 )
@@ -86,8 +86,8 @@ def cli(timeframe, source, watch, summary, service, query, level, spike_ts):
         get_metrics_provider().set_history_source_preference(source)
 
     # Handle coming-soon services
-    if service in ("kafka", "logstash"):
-        console.print(f"\n[yellow]⚠  {service.title()} monitoring is coming soon.[/yellow]")
+    if service == "logstash":
+        console.print("\n[yellow]⚠ Logstash monitoring is coming soon.[/yellow]")
         sys.exit(0)
 
     # --summary flag: jump straight to Quick Summary
@@ -131,14 +131,22 @@ def cli(timeframe, source, watch, summary, service, query, level, spike_ts):
         label, view_fn = OPENSEARCH_VIEWS[choice]
         # Prepare watch arguments
         watch_args = {"timeframe": timeframe}
-        if label == "Log Browser":
-            watch_args.update({"query_str": query, "level": level})
-        elif label == "Root Cause Analysis":
-            watch_args = {"spike_ts": spike_ts}
+        # if label == "Log Browser":
+        #     watch_args.update({"query_str": query, "level": level})
+        # elif label == "Root Cause Analysis":
+        #     watch_args = {"spike_ts": spike_ts}
 
         _watch_loop(view_fn, watch, **watch_args)
         return
 
+    if service == "kafka":
+        from monitor.menus import kafka_menu
+        kafka_menu()
+        return
+    if service == "prometheus":
+        from monitor.menus import prometheus_menu
+        prometheus_menu()
+        return
     # Default routing:
     #   --service opensearch   → go directly to the OpenSearch menu
     #   no --service flag      → show the top-level service selector
@@ -147,6 +155,7 @@ def cli(timeframe, source, watch, summary, service, query, level, spike_ts):
     else:
         main_service_menu(timeframe=timeframe, query=query, level=level, spike_ts=spike_ts)
 
+    
 
 def _watch_loop(view_fn, interval: int, **kwargs):
     """
