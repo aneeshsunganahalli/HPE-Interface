@@ -8,7 +8,9 @@ All metrics are scoped to the OpenSearch process itself — not the host OS:
   cpu_pct           process.cpu.percent           (OS process CPU, not system-wide)
   heap_pct          jvm.mem.heap_used_percent      (JVM heap — the relevant memory for OS)
   heap_used_bytes   jvm.mem.heap_used_in_bytes
-  heap_max_bytes    jvm.mem.heap_max_in_bytes
+    heap_max_bytes    jvm.mem.heap_max_in_bytes
+    jvm_thread_count  jvm.threads.count
+    jvm_thread_peak_count jvm.threads.peak_count
   disk_store_bytes  indices.store.size_in_bytes    (data owned by OpenSearch on this node)
   disk_total_bytes  fs.total.total_in_bytes        (capacity of the data filesystem)
   disk_pct          disk_store_bytes / disk_total_bytes * 100
@@ -72,6 +74,10 @@ def collect(client) -> dict[str, dict[str, Any]]:
         heap_max  = jvm_mem.get("heap_max_in_bytes", 0)
         heap_pct  = (heap_used / heap_max * 100.0) if heap_max > 0 else 0.0
 
+        jvm_threads = node.get("jvm", {}).get("threads", {})
+        jvm_thread_count = jvm_threads.get("count", 0)
+        jvm_thread_peak_count = jvm_threads.get("peak_count", 0)
+
         # ── Disk: indices store vs filesystem capacity ─────────────────────
         # indices.store.size_in_bytes = bytes OpenSearch itself wrote on this node
         # fs.total.total_in_bytes     = total capacity of the data filesystem
@@ -103,6 +109,8 @@ def collect(client) -> dict[str, dict[str, Any]]:
             "heap_pct":        round(heap_pct, 2),
             "heap_used_bytes": heap_used,
             "heap_max_bytes":  heap_max,
+            "jvm_thread_count": jvm_thread_count,
+            "jvm_thread_peak_count": jvm_thread_peak_count,
             "disk_store_bytes": store_bytes,
             "disk_total_bytes": disk_total,
             "disk_pct":        round(disk_pct, 2),

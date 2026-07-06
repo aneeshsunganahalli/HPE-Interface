@@ -47,6 +47,11 @@ These are per-node metrics under `nodes.<node_name>`.
 - Meaning: JVM heap pressure for OpenSearch
 - Why we poll it: High heap pressure increases GC activity and risk of memory-related slowdowns
 
+### `jvm_thread_count`, `jvm_thread_peak_count`
+- Source: `jvm.threads.count`, `jvm.threads.peak_count`
+- Meaning: Current JVM thread count and the peak thread count observed since node start
+- Why we poll it: Helps distinguish normal load from thread growth or leaks
+
 ### `disk_store_bytes`, `disk_total_bytes`, `disk_pct`
 - Source:
   - `indices.store.size_in_bytes` (OpenSearch-owned data size)
@@ -149,6 +154,6 @@ Together, they let us quickly answer:
 
 Use this short flow in the meeting:
 1. Start with **CPU + Heap + GC rate** to show compute and memory pressure.
-2. Move to **Threadpool queue/rejections** to show user-facing overload risk.
+2. Move to **JVM thread count + Threadpool queue/rejections** to show user-facing overload risk.
 3. Show **Disk + FD usage** to cover hard capacity limits.
 4. End with **I/O rates + index_total trend** to explain workload behavior over time.
