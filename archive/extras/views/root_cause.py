@@ -4,8 +4,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console, LOG_COLORS, ROOT_CAUSE_PATTERNS
-from extras.client import logs_for_spike
+from archive.extras.config import console, LOG_COLORS, ROOT_CAUSE_PATTERNS
+from archive.extras.client import logs_for_spike
 
 
 def display_root_cause(spike_ts: str = None, window_min: int = 5):

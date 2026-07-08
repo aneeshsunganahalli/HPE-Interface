@@ -4,9 +4,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console
-from extras.client import data_streams
-from extras.utils import format_bytes, parse_size_string
+from archive.extras.config import console
+from archive.extras.client import data_streams
+from archive.extras.utils import format_bytes, parse_size_string
 
 STALE_WARN_MINUTES = 60
 STALE_CRIT_MINUTES = 240

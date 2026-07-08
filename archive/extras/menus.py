@@ -3,17 +3,17 @@ import sys
 from rich.panel import Panel
 from simple_term_menu import TerminalMenu
 
-from extras.config import console
-from extras.views.quick_summary import display_quick_summary
-from extras.views.trends import display_trends
-from extras.views.cluster_health import display_cluster_health
-from extras.views.index_deep_dive import display_index_deep_dive
-from extras.views.node_performance import display_node_performance
-from extras.views.shard_overview import display_shard_overview
+from archive.extras.config import console
+from archive.extras.views.quick_summary import display_quick_summary
+from archive.extras.views.trends import display_trends
+from archive.extras.views.cluster_health import display_cluster_health
+from archive.extras.views.index_deep_dive import display_index_deep_dive
+from archive.extras.views.node_performance import display_node_performance
+from archive.extras.views.shard_overview import display_shard_overview
 # from monitor_v2.views.data_streams import display_data_streams
 # from monitor_v2.views.log_browser import display_log_browser
 # from monitor_v2.views.root_cause import display_root_cause
-from extras.utils import press_enter
+from archive.extras.utils import press_enter
 
 CURSOR = "❯ "
 CURSOR_STYLE = ("fg_cyan", "bold")

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from rich.panel import Panel
 
-from extras.config import CPU_WARN, CPU_CRIT, console
-from extras.metrics import TrendSeries, get_provider
-from extras.charts import line_chart, format_value, series_average
-from extras.utils import is_realtime, timeframe_to_prom_range
+from archive.extras.config import CPU_WARN, CPU_CRIT, console
+from archive.extras.metrics import TrendSeries, get_provider
+from archive.extras.charts import line_chart, format_value, series_average
+from archive.extras.utils import is_realtime, timeframe_to_prom_range
 
 CHART_COLOR = "bright_cyan"
 

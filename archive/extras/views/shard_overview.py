@@ -2,9 +2,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console
-from extras.client import shards
-from extras.utils import format_bytes, parse_size_string
+from archive.extras.config import console
+from archive.extras.client import shards
+from archive.extras.utils import format_bytes, parse_size_string
 
 
 def display_shard_overview(timeframe: str = "1h"):

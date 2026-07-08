@@ -5,10 +5,10 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console, CPU_WARN, CPU_CRIT, HEAP_WARN, HEAP_CRIT, DISK_WARN, DISK_CRIT
-from extras.metrics import get_provider
-from extras.client import node_stats
-from extras.utils import format_bytes, status_symbol, status_color
+from archive.extras.config import console, CPU_WARN, CPU_CRIT, HEAP_WARN, HEAP_CRIT, DISK_WARN, DISK_CRIT
+from archive.extras.metrics import get_provider
+from archive.extras.client import node_stats
+from archive.extras.utils import format_bytes, status_symbol, status_color
 
 PA_IO_WAIT_WARN = 20.0
 

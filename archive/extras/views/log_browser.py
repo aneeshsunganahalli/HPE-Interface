@@ -4,9 +4,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console, LOG_COLORS
-from extras.client import search_logs
-from extras.utils import timeframe_to_minutes
+from archive.extras.config import console, LOG_COLORS
+from archive.extras.client import search_logs
+from archive.extras.utils import timeframe_to_minutes
 
 
 def display_log_browser(timeframe: str = "1h", query_str: str = "*", level: str = None):

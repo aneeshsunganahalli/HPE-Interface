@@ -3,7 +3,7 @@ from __future__ import annotations
 import urllib3
 from opensearchpy import OpenSearch
 
-from extras.config import (
+from archive.extras.config import (
     OPENSEARCH_HOST, OPENSEARCH_PORT, OPENSEARCH_USER, OPENSEARCH_PASS,
     OPENSEARCH_SSL, OPENSEARCH_INDEX, console,
 )

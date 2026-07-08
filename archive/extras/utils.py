@@ -2,7 +2,7 @@ import re
 
 from rich.prompt import Prompt
 
-from extras.config import console
+from archive.extras.config import console
 
 
 # ── Byte formatting ──────────────────────────────────────────────

@@ -2,9 +2,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import box
 
-from extras.config import console
-from extras.client import cluster_health
-from extras.utils import cluster_status_styled, cluster_status_symbol
+from archive.extras.config import console
+from archive.extras.client import cluster_health
+from archive.extras.utils import cluster_status_styled, cluster_status_symbol
 
 
 def display_cluster_health(timeframe: str = "1h"):

@@ -2,9 +2,9 @@ from rich.table import Table
 from rich import box
 from simple_term_menu import TerminalMenu
 
-from extras.config import console
-from extras.client import indices, shards
-from extras.utils import format_bytes, parse_size_string
+from archive.extras.config import console
+from archive.extras.client import indices, shards
+from archive.extras.utils import format_bytes, parse_size_string
 
 
 def display_index_deep_dive(timeframe: str = "1h"):

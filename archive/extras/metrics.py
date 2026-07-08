@@ -10,13 +10,13 @@ from typing import Any
 
 import urllib3
 
-from extras.config import (
+from archive.extras.config import (
     PROMETHEUS_HOST, PROMETHEUS_PORT, PROMETHEUS_SCHEME, PROMETHEUS_TIMEOUT,
     PA_HOST, PA_PORT, PA_SCHEME, PA_TIMEOUT,
     POLLER_DATA_DIR, HISTORY_SOURCE, console,
 )
-from extras.poller_history import PollerHistoryStore
-from extras.utils import is_realtime, timeframe_to_minutes, timeframe_to_prom_range
+from archive.extras.poller_history import PollerHistoryStore
+from archive.extras.utils import is_realtime, timeframe_to_minutes, timeframe_to_prom_range
 
 
 @dataclass
@@ -52,7 +52,7 @@ class MetricsProvider:
     # ── Node stats ───────────────────────────────────────────────
 
     def node_stats(self, timeframe: str = "1h") -> dict[str, Any]:
-        from extras.client import node_stats
+        from archive.extras.client import node_stats
         return node_stats()
 
     # ── Historical trends ────────────────────────────────────────

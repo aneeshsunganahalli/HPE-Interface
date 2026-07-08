@@ -2,9 +2,9 @@ import datetime
 
 from rich.panel import Panel
 
-from extras.config import console, CPU_WARN, CPU_CRIT, HEAP_WARN, HEAP_CRIT, DISK_WARN, DISK_CRIT
-from extras.client import cluster_health, cluster_stats, node_stats, disk_allocation, indices, shards
-from extras.utils import format_bytes, parse_size_string, status_symbol, cluster_status_symbol, cluster_status_styled
+from archive.extras.config import console, CPU_WARN, CPU_CRIT, HEAP_WARN, HEAP_CRIT, DISK_WARN, DISK_CRIT
+from archive.extras.client import cluster_health, cluster_stats, node_stats, disk_allocation, indices, shards
+from archive.extras.utils import format_bytes, parse_size_string, status_symbol, cluster_status_symbol, cluster_status_styled
 
 
 def display_quick_summary(timeframe: str = "1h"):

@@ -5,11 +5,11 @@ import re
 
 import click
 
-from extras.config import console
-from extras.metrics import get_provider
-from extras.menus import main_menu, opensearch_menu, VIEWS, CURSOR, CURSOR_STYLE, HIGHLIGHT_STYLE
-from extras.views.quick_summary import display_quick_summary
-from extras.utils import press_enter
+from archive.extras.config import console
+from archive.extras.metrics import get_provider
+from archive.extras.menus import main_menu, opensearch_menu, VIEWS, CURSOR, CURSOR_STYLE, HIGHLIGHT_STYLE
+from archive.extras.views.quick_summary import display_quick_summary
+from archive.extras.utils import press_enter
 
 
 @click.command()

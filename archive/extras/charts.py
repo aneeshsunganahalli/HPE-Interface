@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from extras.config import console
-from extras.metrics import TrendSeries
-from extras.utils import format_bytes
+from archive.extras.config import console
+from archive.extras.metrics import TrendSeries
+from archive.extras.utils import format_bytes
 
 
 _LINE_CHARS = "⠀⡀⣀⣄⣤⣴⣶⣾⣿"  # braille progression for sub-cell resolution
